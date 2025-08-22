@@ -1,22 +1,44 @@
 <template>
-  <div id="app">
+  <div id="app" :class="weatherPic">
     <div class="container">
       <!-- search bar -->
-      <div class="search-box">
-        <input type="text" placeholder="Search for a city..." class="search-bar" />
+      <div class="select-box">
+        <select @change="onSelectCity" class="city-select">
+          <option disabled value="">請選擇台灣主要城市</option>
+          <option value="Taipei">台北</option>
+          <option value="New Taipei">新北</option>
+          <option value="Taoyuan">桃園</option>
+          <option value="Taichung">台中</option>
+          <option value="Tainan">台南</option>
+          <option value="Kaohsiung">高雄</option>
+          <option value="Keelung">基隆</option>
+          <option value="Hsinchu">新竹</option>
+          <option value="Chiayi">嘉義</option>
+          <option value="Changhua">彰化</option>
+          <option value="Pingtung">屏東</option>
+          <option value="Yilan">宜蘭</option>
+          <option value="Hualien">花蓮</option>
+          <option value="Taitung">台東</option>
+          <option value="Nantou">南投</option>
+          <option value="Yunlin">雲林</option>
+          <option value="Miaoli">苗栗</option>
+          <option value="Penghu">澎湖</option>
+          <option value="Kinmen">金門</option>
+          <option value="Lienchiang">連江</option>
+        </select>
       </div>
 
       <div class="weather-wrapper">
         <!-- location & date info -->
         <div class="location-box">
-          <div class="location">Taichung</div>
-          <div class="date">Octorber 8th 2020</div>
+          <div class="location">{{ selectedCity }}</div>
+          <div class="date">{{ currentDate }}</div>
         </div>
 
         <!-- weather info -->
         <div class="weather-box">
-          <div class="temperature">26°C</div>
-          <div class="weather">Cloud</div>
+          <div class="temperature"> {{  weatherTemperature }} °C</div>
+          <div class="weather">{{ weather.weather[0].main }}</div>
         </div>
       </div>
     </div>
@@ -24,9 +46,56 @@
 </template>
 
 <script>
+import dayjs from 'dayjs'
+import advancedFormat from 'dayjs/plugin/advancedFormat'
+dayjs.extend(advancedFormat)
+
 export default {
-  name: "App"
-};
+  name: "App",
+  data() {
+    return {
+      api_key: process.env.VUE_APP_WEATHER_KEY, //OpenWeatherMap API 的金鑰
+      base_url: 'https://api.openweathermap.org/data/2.5/', //API 的基礎網址
+      selectedCity: '', //select 選單選擇
+      query: 'Taichung', //查詢用英文城市
+      weather: {}, //用來儲存天氣資料的物件
+      date: '' //用來儲存日期的字串
+    }
+  },
+  computed:{
+    currentDate() {
+      // 使用 dayjs 套件取得現在的日期，並格式化成「月份 日 年份」的字串
+      return dayjs().format('MMMM DD YYYY');
+    },
+    weatherTemperature() {
+      // 取得天氣資料中的溫度，並四捨五入到整數
+      return Math.round(Math.round(this.weather.main.temp));
+    },
+    weatherPic() {
+      return this.weatherTemperature > 20 ? 'warm' : '';
+    }
+  },
+  methods: {
+    // select 選單選擇城市時
+    onSelectCity(event) {
+      // 直接將選擇的 value 指定給 weather.name
+      const city = event.target.value;
+      this.selectedCity = city;
+      this.query = city;
+      this.fetchWeather();
+    },
+    // 使用 fetch API 來取得天氣資料
+    async fetchWeather() {
+      const data = await fetch(`${this.base_url}weather?q=${this.query}&units=metric&APPID=${this.api_key}`)
+      this.weather = await data.json()
+      console.log( this.weather );
+    }
+  },
+  created() {
+        this.fetchWeather();
+  }
+
+}
 </script>
 
 <style>
@@ -57,25 +126,20 @@ export default {
   )
 }
 
-.search-box {
-  width: 100%;
-  margin-bottom: 35px;
-}
-
-.search-box .search-bar {
+.select-box .city-select{
   display: block;
-  width: 100%;
-  padding: 15px;
-  transition: all 0.4s ease-in;
-  border-radius: 15px;
-  font-size: 20px;
-  border: none;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  width: 100%; 
+  padding:10px; 
+  font-size: 16px;
+  border-radius:10px;
   outline: none;
-  background: none;
-  background-color: hsla(0,0%,100%,.5);
+  background-color: hsl(0deg 0% 100% / 50%);
+  transition: all 0.4s ease-in;
 }
 
-.search-box .search-bar:focus {
+.select-box .city-select:focus {
   background-color: rgba(255, 255, 255, 0.75);
   box-shadow: 0px 0px 16px rgba(0, 0, 0, 0.25);
 }
