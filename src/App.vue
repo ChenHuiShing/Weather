@@ -4,7 +4,7 @@
       <!-- search bar -->
       <div class="select-box">
         <select @change="onSelectCity" class="city-select">
-          <option disabled value="">請選擇台灣主要城市</option>
+          <option disabled>請選擇台灣主要城市</option>
           <option value="Taipei">台北</option>
           <option value="New Taipei">新北</option>
           <option value="Taoyuan">桃園</option>
@@ -28,20 +28,27 @@
         </select>
       </div>
 
-      <div class="weather-wrapper">
-        <!-- location & date info -->
-        <div class="location-box">
-          <div class="location">{{ selectedCity }}</div>
-          <div class="date">{{ currentDate }}</div>
-        </div>
+      <div class="weather-map-container">
+        <div class="weather-wrapper">
+              <!-- location & date info -->
+              <div class="location-box">
+                <div class="location">{{ selectedCity }}</div>
+                <div class="date">{{ currentDate }}</div>
+              </div>
 
-        <!-- weather info -->
-        <div class="weather-box">
-          <div class="temperature"> {{  weatherTemperature }} °C</div>
-          <div class="weather">{{ weather.weather[0].main }}</div>
+              <!-- weather info -->
+              <div class="weather-box">
+                <div class="temperature"> {{  weatherTemperature }} °C</div>
+                <div class="weather">{{ weather.weather[0].main }}</div>
+              </div>
+        </div>
+        <!-- 由子層CityName事件傳回 觸發onMapCityHovered事件 -->
+        <div class="map-container">
+            <Map @CityName="onMapCityHovered" /> 
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -49,27 +56,52 @@
 import dayjs from 'dayjs'
 import advancedFormat from 'dayjs/plugin/advancedFormat'
 dayjs.extend(advancedFormat)
+import Map from './components/map.vue';
 
 export default {
+  components: {
+    Map
+  },
   name: "App",
   data() {
     return {
       api_key: process.env.VUE_APP_WEATHER_KEY, //OpenWeatherMap API 的金鑰
       base_url: 'https://api.openweathermap.org/data/2.5/', //API 的基礎網址
-      selectedCity: '', //select 選單選擇
-      query: 'Taichung', //查詢用英文城市
+      selectedCity: 'Taipei', //select 選單選擇
       weather: {}, //用來儲存天氣資料的物件
-      date: '' //用來儲存日期的字串
+      date: '', //用來儲存日期的字串
+      cityMapping: {
+      '基隆': 'Keelung',
+      '台北': 'Taipei',
+      '新北市': 'New Taipei',
+      '宜蘭': 'Yilan',
+      '桃園': 'Taoyuan',
+      '新竹': 'Hsinchu',
+      '苗栗': 'Miaoli',
+      '台中': 'Taichung',
+      '彰化': 'Changhua',
+      '南投': 'Nantou',
+      '雲林': 'Yunlin',
+      '嘉義': 'Chiayi',
+      '台南': 'Tainan',
+      '高雄': 'Kaohsiung',
+      '屏東': 'Pingtung',
+      '台東': 'Taitung',
+      '花蓮': 'Hualien',
+      '澎湖': 'Penghu',
+      '金門': 'Kinmen',
+      '連江': 'Lienchiang'
+      },
     }
   },
   computed:{
     currentDate() {
-      // 使用 dayjs 套件取得現在的日期，並格式化成「月份 日 年份」的字串
+      // 使用 dayjs 來格式化日期
       return dayjs().format('MMMM DD YYYY');
     },
     weatherTemperature() {
       // 取得天氣資料中的溫度，並四捨五入到整數
-      return Math.round(Math.round(this.weather.main.temp));
+      return Math.round(this.weather.main.temp);
     },
     weatherPic() {
       return this.weatherTemperature > 20 ? 'warm' : '';
@@ -81,12 +113,22 @@ export default {
       // 直接將選擇的 value 指定給 weather.name
       const city = event.target.value;
       this.selectedCity = city;
-      this.query = city;
       this.fetchWeather();
+    },
+    onMapCityHovered(chineseCityName) {
+      // 根據中文城市名稱取得對應的英文名稱
+      const englishCityName = this.cityMapping[chineseCityName];
+      
+      if (englishCityName) {
+        this.selectedCity = englishCityName;
+        this.fetchWeather();
+      } else {
+        console.error('未找到對應的城市名稱:', chineseCityName);
+      }
     },
     // 使用 fetch API 來取得天氣資料
     async fetchWeather() {
-      const data = await fetch(`${this.base_url}weather?q=${this.query}&units=metric&APPID=${this.api_key}`)
+      const data = await fetch(`${this.base_url}weather?q=${this.selectedCity}&units=metric&APPID=${this.api_key}`)
       this.weather = await data.json()
       console.log( this.weather );
     }
@@ -117,6 +159,8 @@ export default {
 }
 
 .container {
+  display: inline-block;
+  width: 100vw;
   height: 100vh;
   padding: 25px;
   background-image: linear-gradient(
@@ -124,6 +168,18 @@ export default {
     rgba(0, 0, 0, 0.25),
     rgba(0, 0, 0, 0.75)
   )
+}
+
+.weather-map-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.map-container{
+  margin: 20px;
+  position: relative;
+  width: 25%;
 }
 
 .select-box .city-select{
@@ -169,9 +225,9 @@ export default {
 
 .weather-box .temperature {
   display: inline-block;
-  padding: 10px 25px;
+  padding: 10px 20px;
   color: #fff;
-  font-size: 92px;
+  font-size: 72px;
   font-weight: 900;
   text-shadow: 3px 6px rgba(0, 0, 0, 0.25);
   background-color: rgba(255, 255, 255, 0.25);
@@ -187,5 +243,4 @@ export default {
   font-style: italic;
   text-shadow: 3px 6px rgba(0, 0, 0, 0.25);
 }
-
 </style>
